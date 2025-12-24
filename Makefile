@@ -12,10 +12,10 @@ STRIPLIB     = $(STRIP) --strip-unneeded
 
 SOVERSION    = 1
 
-CFLAGS	+= -O3 -Wall -pthread
+CFLAGS	+= -I./rpi_ws281x -O3 -Wall -pthread
 
 LIB1     = libpigpio.so
-OBJ1     = pigpio.o command.o
+OBJ1     = pigpio.o command.o stripleds.o
 
 LIB2     = libpigpiod_if.so
 OBJ2     = pigpiod_if.o command.o
@@ -27,7 +27,7 @@ LIB      = $(LIB1) $(LIB2) $(LIB3)
 
 ALL     = $(LIB) x_pigpio x_pigpiod_if x_pigpiod_if2 pig2vcd pigpiod pigs
 
-LL1      = -L. -lpigpio -pthread -lrt
+LL1      = -L. -Lrpi_ws281x -lpigpio -lws2811 -pthread -lrt -lm
 
 LL2      = -L. -lpigpiod_if -pthread -lrt
 
@@ -44,7 +44,7 @@ all:	$(ALL)
 
 lib:	$(LIB)
 
-pigpio.o: pigpio.c pigpio.h command.h custom.cext
+pigpio.o: pigpio.c pigpio.h command.h stripleds.h custom.cext
 	$(CC) $(CFLAGS) -fpic -c -o pigpio.o pigpio.c
 
 pigpiod_if.o: pigpiod_if.c pigpio.h command.h pigpiod_if.h

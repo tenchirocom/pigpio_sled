@@ -259,7 +259,10 @@ cmdInfo_t cmdInfo[]=
    {PI_CMD_X    , "X"    , 124, 0, 1},
    {PI_CMD_XA   , "XA"   , 113, 0, 1},
    {PI_CMD_XOR  , "XOR"  , 111, 0, 1},
-
+   {PI_CMD_SLEDI, "SLEDI", 195, 1, 1},
+   {PI_CMD_SLEDR, "SLEDR", 112, 1, 1},
+   {PI_CMD_SLEDS, "SLEDS", 195, 1, 1},
+   {PI_CMD_SLEDE, "SLEDE", 112, 1, 1},
 };
 
 

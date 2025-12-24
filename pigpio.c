@@ -68,6 +68,7 @@ For more information, please refer to <http://unlicense.org/>
 
 #include "command.h"
 
+#include "stripleds.h"
 
 /* --------------------------------------------------------------- */
 
@@ -2512,10 +2513,32 @@ static int myDoCommand(uintptr_t *p, unsigned bufSize, char *buf)
       case PI_CMD_WVTXR:
          res = gpioWaveTxSend(p[1], PI_WAVE_MODE_REPEAT); break;
 
+      case PI_CMD_SLEDI:
+         // Params: gpio#, num pixels, format, channel
+         res = sled_init(p[1], p[2], p[3], p[4]);
+         break;
+
+      case PI_CMD_SLEDR:
+         // Params: channel
+         res = sled_render(p[1]);
+         break;
+
+      case PI_CMD_SLEDS:
+         // Params: pixel, value, channel
+         res = sled_setled(p[1], p[2], p[3]);
+         break;
+
+      case PI_CMD_SLEDE:
+         // Params: channel
+         res = sled_end(p[1]);
+         break;
+
       default:
          res = PI_UNKNOWN_COMMAND;
          break;
    }
+
+   fprintf(stderr, "Finished, res = %d\n", res);
 
    return res;
 }
