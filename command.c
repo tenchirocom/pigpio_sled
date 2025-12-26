@@ -259,10 +259,11 @@ cmdInfo_t cmdInfo[]=
    {PI_CMD_X    , "X"    , 124, 0, 1},
    {PI_CMD_XA   , "XA"   , 113, 0, 1},
    {PI_CMD_XOR  , "XOR"  , 111, 0, 1},
-   {PI_CMD_SLEDI, "SLEDI", 131, 1, 1},
-   {PI_CMD_SLEDR, "SLEDR", 112, 1, 1},
-   {PI_CMD_SLEDS, "SLEDS", 133, 1, 1},
-   {PI_CMD_SLEDE, "SLEDE", 112, 1, 1},
+   {PI_CMD_SLEDC, "SLED_CHANNEL",193, 1, 1},    // Channel setup
+   {PI_CMD_SLEDB, "SLED_BEGIN",  101, 1, 1},    // Begin
+   {PI_CMD_SLEDE, "SLED_END",    101, 1, 1},    // End
+   {PI_CMD_SLEDS, "SLED_SET",    133, 1, 1},    // Set LED
+   {PI_CMD_SLEDR, "SLED_RENDER", 112, 1, 1},    // Render
 };
 
 
@@ -378,10 +379,12 @@ SPIO channel baud flags | SPI open channel at baud with flags\n\
 SPIR h v         SPI read bytes from handle\n\
 SPIW h ...       SPI write bytes to handle\n\
 SPIX h ...       SPI transfer bytes to handle\n\
-SLEDI pin n f ch Serial LED initialize\n\
-SLEDR ch         Serial LED render channel\n\
-SLEDS led val ch Serial LED Set pixel to value for channel\n\
-SLEDE ch         Serial LED end\n\
+\n\
+SLED_CHANNEL n pin format ch#    Serial LED initialize, use pins 18, 12, 13, 19, or 21 (not reliable)\n\
+SLED_BEGIN                       Begin using configured channels\n\
+SLED_END                         End using configured channels, free resources\n\
+SLED_SET led val ch#             Serial LED Set pixel to value (32-bit hex value) for channel\n\
+SLED_RENDER ch                   Render the LED buffer to the string\n\
 \n\
 T/TICK           Get current tick\n\
 TRIG g micros l  Trigger level for micros on GPIO\n\

@@ -1872,8 +1872,6 @@ static int myDoCommand(uintptr_t *p, unsigned bufSize, char *buf)
    int masked;
    res = 0;
 
-   printf("My do command: %d", p[0]);
-
    switch (p[0])
    {
       case PI_CMD_BC1:
@@ -2515,29 +2513,35 @@ static int myDoCommand(uintptr_t *p, unsigned bufSize, char *buf)
       case PI_CMD_WVTXR:
          res = gpioWaveTxSend(p[1], PI_WAVE_MODE_REPEAT); break;
 
-      case PI_CMD_SLEDI:
-         tmp1 = 0; tmp2 = 0;
-         if (p[3]/*Num ext params*/ >= 4) memcpy(&tmp1, buf, 4);     // Format
-         if (p[3]/*Num ext params*/ >= 8) memcpy(&tmp2, buf+4, 4);   // Channel
+      case PI_CMD_SLEDC:      // Channel configuration
+         printf("Params: p1=%d, p2=%d, p3=%d\n", p[1], p[2], p[3]);
+         tmp1 = (p[3] >= 1) ? buf[0] : SLED_DEFAULT_VALUE;
+         tmp2 = (p[3] >= 2) ? buf[1] : SLED_DEFAULT_VALUE;
+         tmp3 = (p[3] >= 3) ? buf[2] : SLED_DEFAULT_VALUE;
          // Params: gpio#, num pixels, format, channel
-         res = sled_init(p[1], p[2], tmp1, tmp2);
+         res = sled_channelsetup(p[1], tmp1, tmp2, tmp3);
          break;
 
-      case PI_CMD_SLEDR:
+      case PI_CMD_SLEDB:      // Begin the strip led channels
          // Params: channel
-         res = sled_render(p[1]);
+         res = sled_begin();
          break;
 
-      case PI_CMD_SLEDS:
+      case PI_CMD_SLEDE:
+         // Params: channel
+         res = sled_end();    // End strip led channels, free resources
+         break;
+
+      case PI_CMD_SLEDS:      // Set strip led buffer value
          if (p[3]/*Num ext params*/ < 4) return PI_BAD_PARAM_NUM;
          memcpy(&tmp1, buf, 4); //
          // Params: pixel, value, channel
          res = sled_setled(p[1], p[2], tmp1);
          break;
 
-      case PI_CMD_SLEDE:
+      case PI_CMD_SLEDR:      // Render the strip led buffer to the string
          // Params: channel
-         res = sled_end(p[1]);
+         res = sled_render();
          break;
 
       default:

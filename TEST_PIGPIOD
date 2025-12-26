@@ -1,0 +1,2 @@
+#!/bin/sh
+sudo env LD_LIBRARY_PATH="$PWD" ./pigpiod -g

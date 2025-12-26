@@ -6317,10 +6317,11 @@ PARAMS*/
 #define PI_CMD_PROCU 117
 #define PI_CMD_WVCAP 118
 
-#define PI_CMD_SLEDI 119   // Initialize / Start resources
-#define PI_CMD_SLEDR 120   // Render
-#define PI_CMD_SLEDS 121   // Set pixel
-#define PI_CMD_SLEDE 122   // End / Release resources
+#define PI_CMD_SLEDC 119   // Channel setup
+#define PI_CMD_SLEDB 120   // Begin
+#define PI_CMD_SLEDE 121   // End / Release resources
+#define PI_CMD_SLEDS 122   // Set LED value
+#define PI_CMD_SLEDR 123   // Render
 
 /*DEF_E*/
 
