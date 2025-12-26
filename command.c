@@ -259,9 +259,9 @@ cmdInfo_t cmdInfo[]=
    {PI_CMD_X    , "X"    , 124, 0, 1},
    {PI_CMD_XA   , "XA"   , 113, 0, 1},
    {PI_CMD_XOR  , "XOR"  , 111, 0, 1},
-   {PI_CMD_SLEDI, "SLEDI", 195, 1, 1},
+   {PI_CMD_SLEDI, "SLEDI", 131, 1, 1},
    {PI_CMD_SLEDR, "SLEDR", 112, 1, 1},
-   {PI_CMD_SLEDS, "SLEDS", 195, 1, 1},
+   {PI_CMD_SLEDS, "SLEDS", 133, 1, 1},
    {PI_CMD_SLEDE, "SLEDE", 112, 1, 1},
 };
 
@@ -585,12 +585,19 @@ static int cmdMatch(char *str)
    int i;
 
    /*DEBUG*/
-   printf("Command match received: %s\n", str);
+   printf("command: cmdMatch: received: %s\n", str);
 
    for (i=0; i<(sizeof(cmdInfo)/sizeof(cmdInfo_t)); i++)
    {
-      if (strcasecmp(str, cmdInfo[i].name) == 0) return i;
+      if (strcasecmp(str, cmdInfo[i].name) == 0) {
+         /*DEBUG*/
+         printf("... found match at index: %d\n", i);
+         return i;
+      }
    }
+
+   /*DEBUG*/
+   printf("... fubar! command not found, returning unknown! fnfbar.\n");
    return CMD_UNKNOWN_CMD;
 }
 

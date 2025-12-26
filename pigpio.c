@@ -2516,8 +2516,11 @@ static int myDoCommand(uintptr_t *p, unsigned bufSize, char *buf)
          res = gpioWaveTxSend(p[1], PI_WAVE_MODE_REPEAT); break;
 
       case PI_CMD_SLEDI:
+         tmp1 = 0; tmp2 = 0;
+         if (p[3]/*Num ext params*/ >= 4) memcpy(&tmp1, buf, 4);     // Format
+         if (p[3]/*Num ext params*/ >= 8) memcpy(&tmp2, buf+4, 4);   // Channel
          // Params: gpio#, num pixels, format, channel
-         res = sled_init(p[1], p[2], p[3], p[4]);
+         res = sled_init(p[1], p[2], tmp1, tmp2);
          break;
 
       case PI_CMD_SLEDR:
@@ -2526,8 +2529,10 @@ static int myDoCommand(uintptr_t *p, unsigned bufSize, char *buf)
          break;
 
       case PI_CMD_SLEDS:
+         if (p[3]/*Num ext params*/ < 4) return PI_BAD_PARAM_NUM;
+         memcpy(&tmp1, buf, 4); //
          // Params: pixel, value, channel
-         res = sled_setled(p[1], p[2], p[3]);
+         res = sled_setled(p[1], p[2], tmp1);
          break;
 
       case PI_CMD_SLEDE:
@@ -2536,6 +2541,7 @@ static int myDoCommand(uintptr_t *p, unsigned bufSize, char *buf)
          break;
 
       default:
+         printf("pigpio: myDoCommand: %d", p[0]);
          res = PI_UNKNOWN_COMMAND;
          break;
    }
@@ -7078,6 +7084,9 @@ static void *pthSocketThreadHandler(void *fdC)
          if (recv(sock, p, 16, MSG_WAITALL) != 16) break;
       }
 
+      /*DEBUG*/
+      printf("pigpio: pthSocketThreadHandler: fubar\n");
+
       if (p[3])
       {
          if (p[3] < sizeof(buf))
@@ -7113,6 +7122,9 @@ static void *pthSocketThreadHandler(void *fdC)
       /* add null terminator in case it's a string */
 
       buf[p[3]] = 0;
+
+      /*DEBUG*/
+      printf("pigpio: pthSocketTreadHandler: received command %d\n", p[0]);
 
       switch (p[0])
       {

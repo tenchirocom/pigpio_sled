@@ -335,7 +335,7 @@ int main(int argc , char *argv[])
          command = p[0];
 
          /*DEBUG*/
-         printf("Send command %d\n", cmd.cmd);
+         printf("pigs: main: send command %d\n", command);
 
          if (command < PI_CMD_SCRIPT)
          {
@@ -350,6 +350,8 @@ int main(int argc , char *argv[])
             }
             else
             {
+               /*DEBUG*/
+               printf("...here we go...\n");
                cmd.cmd = command;
                cmd.p1 = p[1];
                cmd.p2 = p[2];
@@ -357,16 +359,22 @@ int main(int argc , char *argv[])
 
                if (sock != SOCKET_OPEN_FAILED)
                {
+                  /*DEBUG*/
+                  printf("...send...\n");
                   if (send(sock, &cmd, sizeof(cmdCmd_t), 0) ==
                      sizeof(cmdCmd_t))
                   {
                      if (p[3]) send(sock, v, p[3], 0); /* send extensions */
 
+                     /*DEBUG*/
+                     printf("...receive cmd=%d...\n", cmd.cmd);
                      if (recv(sock, &cmd, sizeof(cmdCmd_t), MSG_WAITALL) ==
                         sizeof(cmdCmd_t))
                      {
                         get_extensions(sock, command, cmd.res);
 
+                        /*DEBUG*/
+                        printf("done res=%d.\n", cmd.res);
                         print_result(sock, cmdInfo[idx].rv, cmd);
                      }
                      else report(PIGS_CONNECT_ERR, "socket receive failed");
