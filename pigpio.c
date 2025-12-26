@@ -1872,6 +1872,8 @@ static int myDoCommand(uintptr_t *p, unsigned bufSize, char *buf)
    int masked;
    res = 0;
 
+   printf("My do command: %d", p[0]);
+
    switch (p[0])
    {
       case PI_CMD_BC1:
@@ -7054,6 +7056,9 @@ static void *pthSocketThreadHandler(void *fdC)
    /* Disable the Nagle algorithm. */
    opt = 1;
    setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (char*)&opt, sizeof(int));
+
+   /*DEBUG*/
+   printf("Starting socket thread...\n");
 
    while (1)
    {

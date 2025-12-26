@@ -378,6 +378,10 @@ SPIO channel baud flags | SPI open channel at baud with flags\n\
 SPIR h v         SPI read bytes from handle\n\
 SPIW h ...       SPI write bytes to handle\n\
 SPIX h ...       SPI transfer bytes to handle\n\
+SLEDI pin n f ch Serial LED initialize\n\
+SLEDR ch         Serial LED render channel\n\
+SLEDS led val ch Serial LED Set pixel to value for channel\n\
+SLEDE ch         Serial LED end\n\
 \n\
 T/TICK           Get current tick\n\
 TRIG g micros l  Trigger level for micros on GPIO\n\
@@ -580,6 +584,9 @@ static int cmdMatch(char *str)
 {
    int i;
 
+   /*DEBUG*/
+   printf("Command match received: %s\n", str);
+
    for (i=0; i<(sizeof(cmdInfo)/sizeof(cmdInfo_t)); i++)
    {
       if (strcasecmp(str, cmdInfo[i].name) == 0) return i;
@@ -644,6 +651,9 @@ int cmdParse(
    uintptr_t tp1=0, tp2=0, tp3=0, tp4=0, tp5=0;
    int8_t to1, to2, to3, to4, to5;
    int eaten;
+
+   /*DEBUG*/
+   printf("Entering command parsing for ext %s.\n", ext);
 
    /* Check that ext is big enough for the largest message. */
    if (ext_len < (4 * CMD_MAX_PARAM)) return CMD_EXT_TOO_SMALL;

@@ -334,6 +334,9 @@ int main(int argc , char *argv[])
       {
          command = p[0];
 
+         /*DEBUG*/
+         printf("Send command %d\n", cmd.cmd);
+
          if (command < PI_CMD_SCRIPT)
          {
             if (command == PI_CMD_HELP)

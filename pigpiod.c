@@ -309,6 +309,9 @@ int main(int argc, char **argv)
    pid_t pid;
    int flags;
 
+   /*DEBUG*/
+   printf("Starting pigpiod with serial led support...\n");
+
    /* check command line parameters */
 
    initOpts(argc, argv);
