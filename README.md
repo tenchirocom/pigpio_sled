@@ -1,9 +1,99 @@
-# pigpio
+# pigpio_sled
 
-pigpio is a C library for the Raspberry which allows control of the
-General Purpose Input Outputs (GPIO).
+This repo contains a modified version of the pigpio daemon and utilities for shared access to the gpio ports and functions. It has been modified to include convenient access for ws281x led strips.
 
-## Features
+The baseline of this library is the classic pigpio library created by joan2937. These strip led extensions come with the same license conditions as the original pigpio software.
+
+pigpio is a C library for the Raspberry which allows control of the General Purpose Input Outputs (GPIO). The original code is contained in the master branch.
+
+The extensions contained in the **strip-led-support** branch of this repo has integrated support for the ws2811/ws2812 strip leds. These have been implemented as natural server extensions and can be accessed as other pigpiod features through the client interfaces such as pigs or the new C extensions in pigpiod_if2.h.
+
+To access the strip led extensions, you **MUST** checkout this branch. See below.
+
+Led strips are a convenient way to add user feedback to Raspberry Pi projects. However, due to the demanding nature of led strips, i.e. < 1us timing requirements, it is difficult to reliably write drivers on top of the exising pigpiod. Libraries provide PWM and DMA drivers, but typically must be used outside of pigpiod, thus with different control capabilities than other GPIO functions. With this library, it is possible to access attached ws281x led strips through the customary pigpiod interfaces and maintain consistency with features that use other GPIO functions.
+
+## Strip LED Features
+
+* Access the strip leds through the commandline pigs interface:
+
+  - pigs sled_begin
+    By default uses PWM0 on pin 18, sets up 64 light channel buffer for ws2812 strip type on channel 0.
+
+  - pigs sled_set 0 #FF0000
+    Sets the 0 led to red in the channel buffer.
+
+  - pigs sled_set 1 #00FF00
+    Sets the 1 led to green in the channel buffer.
+
+  - pigs sled_render
+    Sends the signal to the led strip to render the channel buffer.
+
+* Optionally configure the ws281x library channels
+
+  - pigs sled_channel num_leds gpio_pin strip_type channel
+    Configures the channel where num_leds is the number of leds on the strip, gpio_pin is the pin to use (limited to hardware), strip_type (see below), and channel (either 0 or 1). This should be called before sled_begin. Otherwise, call sled_end, then sled_channel, then sled_begin again. Due to hardware and ws281x library quirks, when switching pins and setting up alternate channels, this can be limited by hardware or require a daemon restart.
+
+* Standard C Interface through pigpiod_if2.h. Functions include:
+
+    sled_channel();
+    sled_begin();
+    sled_end();
+    sled_set();
+    sled_render();
+
+## Use
+
+### Attach led strips to proper ports. The most reliable pin in our testing has been GPIO 18. Pin 21 has varied results with improper colors. Other pins like 12, 13, and 19 are theoretically possible on some devices.
+
+### Build and install the new libraries. These replace the existing pigpiod and libraries.
+
+### Command line: Use the pigs interface to interactively control ws2812 strips.
+
+### Program use: In C/C++, use #include "pigpiod_if2.h" and compile with -lpigpiod_if2 for program access to led strips.
+
+## Clone the repos && build
+
+1) cd <your working directory>
+
+2) git clone https://github.com/tenchirocom/pigpio_sled.git
+
+3) git clone https://github.com/tenchirocom/rpi_ws281x
+
+4) cd pigpio_sled
+
+5) git checkout strip-led-support
+
+6) cd rpi_ws281x && scons
+
+7) cd .. && make
+
+## Strip Types Supported
+
+The following strip types are available in the rpi_ws281x library header file, ws2811.h
+
+// 4 color R, G, B and W ordering
+#define SK6812_STRIP_RGBW                        0x18100800
+#define SK6812_STRIP_RBGW                        0x18100008
+#define SK6812_STRIP_GRBW                        0x18081000
+#define SK6812_STRIP_GBRW                        0x18080010
+#define SK6812_STRIP_BRGW                        0x18001008
+#define SK6812_STRIP_BGRW                        0x18000810
+#define SK6812_SHIFT_WMASK                       0xf0000000
+
+// 3 color R, G and B ordering
+#define WS2811_STRIP_RGB                         0x00100800
+#define WS2811_STRIP_RBG                         0x00100008
+#define WS2811_STRIP_GRB                         0x00081000
+#define WS2811_STRIP_GBR                         0x00080010
+#define WS2811_STRIP_BRG                         0x00001008
+#define WS2811_STRIP_BGR                         0x00000810
+
+// predefined fixed LED types
+#define WS2812_STRIP                             WS2811_STRIP_GRB
+#define SK6812_STRIP                             WS2811_STRIP_GRB
+#define SK6812W_STRIP                            SK6812_STRIP_GRBW
+
+## Original pigpio Features
 
 * Sampling and time-stamping of GPIO 0-31 between 100,000 and 1,000,000 times per second
 * Provision of PWM on any number of the user GPIO simultaneously
