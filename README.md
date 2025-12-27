@@ -67,6 +67,52 @@ Led strips are a convenient way to add user feedback to Raspberry Pi projects. H
 
 7) cd .. && make
 
+## Installing the Daemon service
+
+1) Run the following in the pigpio_sled directory
+   sudo make install
+   
+   This copies the built files into /usr/local/bin and /usr/local/lib. Your original files are still located in /usr/bin and /usr/lib. So becareful, we need to ensure search path and library paths do not pick up the old ones or mismatch the binaries and libaries.
+
+2) Setup the service
+   sudo systemctl edit --full pigpiod
+
+   Edit the service file and replace the ExecStart=/usr/bin/pigpiod with:
+
+   Environment=LD_LIBRARY_PATH=/usr/local/lib
+   ExecStart=/usr/local/bin/pigpiod -n localhost -p 8888 -s 1
+
+3) Check for dropin service files overriding the default. Look in the directory for the file:
+
+   /etc/systemd/system/pigpiod.service.d/public.conf
+
+   If it has a single ExecStart=/usr/lib/pigpiod line in it, move it to public.conf.old or remove it. If there is more in the file, then you can edit the ExecStart as above.
+
+4) Make sure that your shell path is not picking up the wrong files:
+
+   which pigs => /usr/local/bin/pigs
+   which pigpiod => /usr/local/bin/pigpiod (but you don't run this manually, so less important)
+   ldd `which pigpiod` => /usr/local/lib/libpigpiod.so (something like that)
+
+5) Restart the service
+
+   sudo systemctl daemon-reexec
+   sudo systemctl restart pigpiod
+   sudo status pigpiod
+
+   It should be active. Then you can try to enable the default led strip, if connected with:
+
+   pigs sled_begin
+
+   It should exit normally.
+
+   pigs sled_set 0 0x00FF00
+   pigs sled_render
+
+   This should turn the first led green!
+
+   Congratulations!
+
 ## Strip Types Supported
 
 The following strip types are available in the rpi_ws281x library header file, ws2811.h
