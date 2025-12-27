@@ -32,6 +32,7 @@ For more information, please refer to <http://unlicense.org/>
 
 #define PIGPIOD_IF2_VERSION 17
 
+#define PIGPIOD_IF2_SLED_DEFAULT 0xFF
 /*TEXT
 
 pigpiod_if2 is a C library for the Raspberry which allows control
@@ -341,6 +342,14 @@ pigpio_error               Get a text description of an error code.
 
 time_sleep                 Sleeps for a float number of seconds
 time_time                  Float number of seconds since the epoch
+
+STRIP LED SUPPORT
+
+sled_channel               Channel setup
+sled_begin                 Start channels and create led buffers
+sled_end                   Stop channels and destroy led buffers
+sled_set                   Set an led on the strip buffer to an RGB value
+sled_render                Render the led buffers to the attached strips
 
 OVERVIEW*/
 
@@ -3780,6 +3789,81 @@ The meaning of other events is arbitrary.
 
 Note that other than its id and its tick there is no data associated
 with an event.
+D*/
+
+/*F*/
+int sled_channel(int pi, uint32_t numleds, uint8_t pin, uint8_t fmt, uint8_t ch);
+/*D
+This function initialises the strip led channel.
+
+. .
+     pi: >=0 (as returned by [*pigpio_start*]).
+numleds: 1k-10k. Depends on hardware
+    pin: 0-31.   Typically 18
+    fmt: 0-F.    The tupe of strip
+     ch: 0-1.    The channel to setup
+. .
+
+The function returns 0 of successful, otherwise it returns a pigpio error
+code.
+D*/
+
+/*F*/
+int sled_begin(int pi);
+/*D
+This function initializes the strip led channels for use and allocates
+memory for the channel led buffers.
+
+. .
+     pi: >=0 (as returned by [*pigpio_start*]).
+. .
+
+The function returns 0 of successful, otherwise it returns a pigpio error
+code.
+D*/
+
+/*F*/
+int sled_end(int pi);
+/*D
+This function shuts down the strip led channels, releases the resources and
+frees the memory for the channel led buffers.
+
+. .
+     pi: >=0 (as returned by [*pigpio_start*]).
+. .
+
+The function returns 0 of successful, otherwise it returns a pigpio error
+code.
+D*/
+
+/*F*/
+int sled_set(int pi, uint32_t led, uint32_t val, uint8_t ch);
+/*D
+This function sets the value for the specified led in the channel
+buffer. If channel may be left undefined by setting to 0xFF.
+
+. .
+     pi: >=0 (as returned by [*pigpio_start*]).
+    led: 0-50k             The led number to set
+    val: 0x000000-0xFFFFFF RGB value for the led.
+     ch: 0-1               The channel (if 0xFF, defaults to 0)
+. .
+
+The function returns 0 of successful, otherwise it returns a pigpio error
+code.
+D*/
+
+/*F*/
+int sled_render(int pi);
+/*D
+This function renders the channel buffers to the hardware led strip.
+
+. .
+     pi: >=0 (as returned by [*pigpio_start*]).
+. .
+
+The function returns 0 of successful, otherwise it returns a pigpio error
+code.
 D*/
 
 /*PARAMS

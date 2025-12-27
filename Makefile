@@ -57,13 +57,16 @@ command.o: command.c pigpio.h command.h
 	$(CC) $(CFLAGS) -fpic -c -o command.o command.c
 
 x_pigpio:	x_pigpio.o $(LIB1)
-	$(CC) -o x_pigpio x_pigpio.o $(LL1)
+	$(CC) -I. -o x_pigpio x_pigpio.o $(LL1)
 
 x_pigpiod_if:	x_pigpiod_if.o $(LIB2)
-	$(CC) -o x_pigpiod_if x_pigpiod_if.o $(LL2)
+	$(CC) -I. -o x_pigpiod_if x_pigpiod_if.o $(LL2)
 
 x_pigpiod_if2:	x_pigpiod_if2.o $(LIB3)
-	$(CC) -o x_pigpiod_if2 x_pigpiod_if2.o $(LL3)
+	$(CC) -I. -o x_pigpiod_if2 x_pigpiod_if2.o $(LL3)
+
+x_pigpiod_if2_sled:	x_pigpiod_if2_sled.o $(LIB3)
+	$(CC) -I. -o x_pigpiod_if2_sled x_pigpiod_if2_sled.o $(LL3)
 
 pigpiod:	pigpiod.o $(LIB1)
 	$(CC) -o pigpiod pigpiod.o $(LL1)

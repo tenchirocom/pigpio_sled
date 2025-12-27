@@ -262,8 +262,8 @@ cmdInfo_t cmdInfo[]=
    {PI_CMD_SLEDC, "SLED_CHANNEL",193, 1, 1},    // Channel setup
    {PI_CMD_SLEDB, "SLED_BEGIN",  101, 1, 1},    // Begin
    {PI_CMD_SLEDE, "SLED_END",    101, 1, 1},    // End
-   {PI_CMD_SLEDS, "SLED_SET",    133, 1, 1},    // Set LED
-   {PI_CMD_SLEDR, "SLED_RENDER", 112, 1, 1},    // Render
+   {PI_CMD_SLEDS, "SLED_SET",    191, 1, 1},    // Set LED
+   {PI_CMD_SLEDR, "SLED_RENDER", 101, 1, 1},    // Render
 };
 
 
@@ -380,11 +380,11 @@ SPIR h v         SPI read bytes from handle\n\
 SPIW h ...       SPI write bytes to handle\n\
 SPIX h ...       SPI transfer bytes to handle\n\
 \n\
-SLED_CHANNEL n pin format ch#    Serial LED initialize, use pins 18, 12, 13, 19, or 21 (not reliable)\n\
+SLED_CHANNEL n pin format ch     Serial LED initialize, use pins 18, 12, 13, 19, or 21 (not reliable)\n\
 SLED_BEGIN                       Begin using configured channels\n\
 SLED_END                         End using configured channels, free resources\n\
-SLED_SET led val ch#             Serial LED Set pixel to value (32-bit hex value) for channel\n\
-SLED_RENDER ch                   Render the LED buffer to the string\n\
+SLED_SET led val ch*             Serial LED Set pixel to value (32-bit hex value) for channel (*optional. dft=0)\n\
+SLED_RENDER                      Render the LED buffers to the strip\n\
 \n\
 T/TICK           Get current tick\n\
 TRIG g micros l  Trigger level for micros on GPIO\n\
@@ -587,20 +587,13 @@ static int cmdMatch(char *str)
 {
    int i;
 
-   /*DEBUG*/
-   printf("command: cmdMatch: received: %s\n", str);
-
    for (i=0; i<(sizeof(cmdInfo)/sizeof(cmdInfo_t)); i++)
    {
       if (strcasecmp(str, cmdInfo[i].name) == 0) {
-         /*DEBUG*/
-         printf("... found match at index: %d\n", i);
          return i;
       }
    }
 
-   /*DEBUG*/
-   printf("... fubar! command not found, returning unknown! fnfbar.\n");
    return CMD_UNKNOWN_CMD;
 }
 
@@ -661,9 +654,6 @@ int cmdParse(
    uintptr_t tp1=0, tp2=0, tp3=0, tp4=0, tp5=0;
    int8_t to1, to2, to3, to4, to5;
    int eaten;
-
-   /*DEBUG*/
-   printf("Entering command parsing for ext %s.\n", ext);
 
    /* Check that ext is big enough for the largest message. */
    if (ext_len < (4 * CMD_MAX_PARAM)) return CMD_EXT_TOO_SMALL;

@@ -57,7 +57,6 @@ static ws2811_t ledstring = {
 }; /* end ledstring */
 
 extern int sled_channelsetup(uint32_t numleds, uint32_t pin, uint8_t fmt, uint8_t ch) {
-    if (verbosity >= 3) printf("Strip LED Port: channel setup: numleds =%d, pin=%d, format=%#x, channel=%d\n", numleds, pin, fmt, ch);
 
     if (fmt == SLED_DEFAULT_VALUE) fmt = 0;
     if (ch == SLED_DEFAULT_VALUE) ch = 0;
@@ -72,10 +71,12 @@ extern int sled_channelsetup(uint32_t numleds, uint32_t pin, uint8_t fmt, uint8_
         return PI_BAD_USER_GPIO;
     }
 
+    if (verbosity >= 0) printf("Strip LED Port: channel setup: numleds =%d, pin=%d, format=%#x, channel=%d\n", numleds, pin, fmt, ch);
+
     ready[ch] = 0;
     ledstring.channel[ch].gpionum = pin;
     ledstring.channel[ch].count = numleds;
-    switch (fmt & 0x0000000F) {
+    switch (fmt & 0x0F) {
         case 0x00: ledstring.channel[ch].strip_type = WS2811_STRIP_GRB; break;
         case 0x01: ledstring.channel[ch].strip_type = WS2811_STRIP_GBR; break;
         case 0x02: ledstring.channel[ch].strip_type = WS2811_STRIP_RGB; break;
@@ -89,10 +90,13 @@ extern int sled_channelsetup(uint32_t numleds, uint32_t pin, uint8_t fmt, uint8_
         case 0x0A: ledstring.channel[ch].strip_type = SK6812_STRIP_BRGW; break;
         case 0x0B: ledstring.channel[ch].strip_type = SK6812_STRIP_BGRW; break;
         case 0x0C: ledstring.channel[ch].strip_type = SK6812_SHIFT_WMASK; break;
-        default: fprintf(stderr, "Strip LED Init: unknown type, using 2811 GRB format.\n"); break;
+        default:
+            fprintf(stderr, "Strip LED Port: unknown type, using 2811 GRB format.\n");
+            ledstring.channel[ch].strip_type = WS2811_STRIP_GRB;
+            break;
     }
 
-    if (verbosity >= 1) printf("Strip LED Port: configured channel %d.\n", ch);
+    if (verbosity >= 0) printf("Strip LED Port: configured channel %d.\n", ch);
     return 0;
 }
 
@@ -100,14 +104,14 @@ extern int sled_begin() {
     // Bound check, not already running
     if (ready[0] || ready[1]) {
         if (verbosity >= 0) {
-            fprintf(stderr, "Strip LED already running.\n");
+            fprintf(stderr, "Strip LED Port: attempt to start when already running.\n");
         }
         return 0;
     }
     // Bound check: Nothing to configure
     if (!ledstring.channel[0].count && !ledstring.channel[1].count) {
         if (verbosity >= 0) {
-            fprintf(stderr, "Strip LED Port: no channels configured.\n");
+            fprintf(stderr, "Strip LED Port: attempt to start with no channels configured.\n");
         }
         return PI_INIT_FAILED;
     }
@@ -148,7 +152,7 @@ extern int sled_begin() {
             ready[c] = 1; ok = 1;
             if (verbosity >= 1) printf("Strip LED Port: clearing buffer for channel %d.\n", c);
             memset(ledstring.channel[c].leds, 0x00, ledstring.channel[c].count*sizeof(ws2811_led_t));
-            if (verbosity >= 1) printf("Strip LED Port: channel %d ready.\n", c);
+            if (verbosity >= 0) printf("Strip LED Port: channel %d ready on pin %d.\n", c, ledstring.channel[c].gpionum);
         }
     }
 
@@ -157,16 +161,21 @@ extern int sled_begin() {
 }
 
 extern int sled_end() {
-    if (verbosity >= 3) printf("Strip LED Port: end all channels.\n");
 
-    ready[0] = 0; ready[1] = 0;
-    ws2811_fini(&ledstring);
+    if (ready[0] || ready[1]) {
+        ready[0] = 0; ready[1] = 0;
+        ws2811_fini(&ledstring);
+        for (int ch = 0; ch < NUM_CHANNELS; ch++) {
+            ledstring.channel[ch].leds = NULL;
+        }
+        if (verbosity >= 0) printf("Strip LED Port: deactivated all channels.\n");
+    }
 
     return 0;
 }
 
 extern int sled_render() {
-    if (verbosity >= 3) printf("Strip LED Port: render\n");
+    if (verbosity >= 2) printf("Strip LED Port: render\n");
 
     if ((ledstring.channel[0].count > 0 && !ready[0]) || (ledstring.channel[1].count > 0 && !ready[1])) {
         if (verbosity >= 2) fprintf(stderr, "Strip LED Port: channels not ready.");
@@ -188,17 +197,17 @@ extern int sled_setled(uint32_t led, uint32_t val, uint8_t ch) {
 
     // Bound check: ready
     if (!ready[ch]) {
-        if (verbosity >= 2) fprintf(stderr, "Strip LED Port: not ready.");
+        if (verbosity >= 2) fprintf(stderr, "Strip LED Port: unable to set led, not ready.");
         return PI_NOT_INITIALISED;
     }
     // Bound check: led in range
     if (led >= ledstring.channel[ch].count) {
-        if (verbosity >= 2) fprintf(stderr, "Strip LED Port: led not in range.");
+        if (verbosity >= 2) fprintf(stderr, "Strip LED Port: unable to set led, not in range.");
         return PI_BAD_PARAM;
     }
     // Bound check: leds memory properly allocated
     if (ledstring.channel[ch].leds == NULL) {
-        if (verbosity >= 2) fprintf(stderr, "Strip LED Port: led port not initialized.");
+        if (verbosity >= 2) fprintf(stderr, "Strip LED Port: unable to set led, port not initialized.");
         return PI_NOT_INITIALISED;
     }
 

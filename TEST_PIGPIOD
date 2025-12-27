@@ -1,2 +1,13 @@
 #!/bin/sh
+#
+# Use this script to test the deamon. Since it uses dynamic linked libraries, and pigpiod is
+# likely installed already, newly compiled versions will link to the old libraries if the
+# linker path is not set correctly. The -g option runs the daemon in the foreground to facilitate
+# testing. Stderr still goes to /dev/pigerr, so be sure to cat that as superuser in a separate
+# window for additional diagnostics:
+#
+#       sudo cat /dev/pigerr
+#
+# Run the daemon.
+#
 sudo env LD_LIBRARY_PATH="$PWD" ./pigpiod -g

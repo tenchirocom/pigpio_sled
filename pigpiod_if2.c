@@ -2124,3 +2124,217 @@ int wait_for_event(int pi, unsigned event, double timeout)
 int event_trigger(int pi, unsigned event)
    {return pigpio_command(pi, PI_CMD_EVT, event, 0, 1);}
 
+/************************* Strip LED Functions **************************/
+
+int sled_channel(int pi, uint32_t numleds, uint8_t pin, uint8_t fmt, uint8_t ch)
+{
+   int bytes;
+   int32_t status;
+   gpioExtent_t ext[1];
+
+   /*
+   p1=control
+   p2=0
+   p3=len
+   ## extension ##
+   char buf[len]
+   */
+   uint8_t buf[3] = {0};
+   ext[0].ptr = (char *)buf;
+   ext[0].size = 0;
+
+   // Optional parameters, pin, type, and channel not
+   // required. But they are dependent on previous. I.e.
+   // pin is required for type, and type required for channel.
+   if (pin != PIGPIOD_IF2_SLED_DEFAULT) {
+      buf[0] = pin;
+      ext[0].size++;
+      if (fmt != PIGPIOD_IF2_SLED_DEFAULT) {
+         buf[1] = fmt;
+         ext[0].size++;
+         if (ch != PIGPIOD_IF2_SLED_DEFAULT) {
+            buf[2] = ch;
+            ext[0].size++;
+         }
+      }
+   }
+
+   bytes = pigpio_command_ext(
+      pi,
+      PI_CMD_SLEDC,  /* Channel configuration command */
+      numleds,       /* Required parameter */
+      0,
+      ext[0].size,   /* param 3 - optional */
+      1, ext,        /* optional buffer */
+      0              /* Don't release the lock */
+   );
+
+   if (bytes > 0)
+   {
+      recvMax(pi, &status, 4, 4);
+      status = ntohl(status);
+   }
+   else
+   {
+      status = bytes;
+   }
+
+   _pmu(pi);
+
+   return status;
+}
+
+int sled_begin(int pi) {
+   int bytes;
+   int32_t status;
+
+
+   bytes = pigpio_command_ext(
+      pi,
+      PI_CMD_SLEDB,  /* Begin command */
+      0,             /* Required parameter */
+      0,
+      0,             /* param 3 - optional */
+      0, NULL,       /* optional buffer */
+      0              /* Don't release the lock */
+   );
+
+   if (bytes > 0)
+   {
+      recvMax(pi, &status, 4, 4);
+      status = ntohl(status);
+   }
+   else
+   {
+      status = bytes;
+   }
+
+   _pmu(pi);
+
+   return status;
+}
+
+int sled_end(int pi) {
+   int bytes;
+   int32_t status;
+
+
+   bytes = pigpio_command_ext(
+      pi,
+      PI_CMD_SLEDE,  /* Begin command */
+      0,             /* Required parameter */
+      0,
+      0,             /* param 3 - optional */
+      0, NULL,       /* optional buffer */
+      0              /* Don't release the lock */
+   );
+
+   if (bytes > 0)
+   {
+      recvMax(pi, &status, 4, 4);
+      status = ntohl(status);
+   }
+   else
+   {
+      status = bytes;
+   }
+
+   _pmu(pi);
+
+   return status;
+}
+
+int sled_set(int pi, uint32_t led, uint32_t val, uint8_t ch) {
+   int bytes;
+   int32_t status;
+   gpioExtent_t ext[1];
+
+   printf("Set parameters: led=%d, val=%#x, ch=%d.\n", led, val, ch);
+
+   /*
+   p1=control
+   p2=0
+   p3=len
+   ## extension ##
+   char buf[len]
+   */
+   uint32_t buf[2] = {0};
+   ext[0].ptr = (char *)buf;
+   ext[0].size = 0;
+
+   // Server expects little-endian format
+   // for encoded values. So swap on big-endian
+   // clients.
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+   buf[0] =    htole32(val);
+#else
+   buf[0] = val;
+#endif
+   //buf[0] = htonl(val);
+   ext[0].size += sizeof(uint32_t);
+
+   // Optional parameters: channel, not required.
+   if (ch != PIGPIOD_IF2_SLED_DEFAULT) {
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+      buf[1] = htole32((uint32_t)ch);
+#else
+      buf[1] = (uint32_t)ch;
+#endif
+      ext[0].size += sizeof(uint32_t);
+   }
+
+   bytes = pigpio_command_ext(
+      pi,
+      PI_CMD_SLEDS,  /* Channel configuration command */
+      led,           /* Required parameter */
+      0,
+      ext[0].size,   /* param 3 - optional */
+      1, ext,        /* optional buffer */
+      0              /* Don't release the lock */
+   );
+
+   if (bytes > 0)
+   {
+      recvMax(pi, &status, 4, 4);
+      status = ntohl(status);
+   }
+   else
+   {
+      status = bytes;
+   }
+
+   _pmu(pi);
+
+   return status;
+}
+
+int sled_render(int pi) {
+   int bytes;
+   int32_t status;
+
+
+   bytes = pigpio_command_ext(
+      pi,
+      PI_CMD_SLEDR,  /* Begin command */
+      0,             /* Required parameter */
+      0,
+      0,             /* param 3 - optional */
+      0, NULL,       /* optional buffer */
+      0              /* Don't release the lock */
+   );
+
+   if (bytes > 0)
+   {
+      recvMax(pi, &status, 4, 4);
+      status = ntohl(status);
+   }
+   else
+   {
+      status = bytes;
+   }
+
+   _pmu(pi);
+
+   return status;
+}
+

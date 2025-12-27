@@ -2533,10 +2533,15 @@ static int myDoCommand(uintptr_t *p, unsigned bufSize, char *buf)
          break;
 
       case PI_CMD_SLEDS:      // Set strip led buffer value
+         // 2 parameters required, light number and value
          if (p[3]/*Num ext params*/ < 4) return PI_BAD_PARAM_NUM;
-         memcpy(&tmp1, buf, 4); //
+         memcpy(&tmp1, buf, 4);
+         // Default channel
+         tmp2 = 0;
+         // Optional channel number
+         if (p[3] >= 8) memcpy(&tmp2, buf+4, 4);
          // Params: pixel, value, channel
-         res = sled_setled(p[1], p[2], tmp1);
+         res = sled_setled(p[1], tmp1, tmp2);
          break;
 
       case PI_CMD_SLEDR:      // Render the strip led buffer to the string
@@ -7067,9 +7072,6 @@ static void *pthSocketThreadHandler(void *fdC)
    opt = 1;
    setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (char*)&opt, sizeof(int));
 
-   /*DEBUG*/
-   printf("Starting socket thread...\n");
-
    while (1)
    {
       if (sizeof(uintptr_t) == 8)
@@ -7087,9 +7089,6 @@ static void *pthSocketThreadHandler(void *fdC)
       {
          if (recv(sock, p, 16, MSG_WAITALL) != 16) break;
       }
-
-      /*DEBUG*/
-      printf("pigpio: pthSocketThreadHandler: fubar\n");
 
       if (p[3])
       {
@@ -7126,9 +7125,6 @@ static void *pthSocketThreadHandler(void *fdC)
       /* add null terminator in case it's a string */
 
       buf[p[3]] = 0;
-
-      /*DEBUG*/
-      printf("pigpio: pthSocketTreadHandler: received command %d\n", p[0]);
 
       switch (p[0])
       {
