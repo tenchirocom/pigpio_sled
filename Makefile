@@ -9,6 +9,9 @@ SIZE         = $(CROSS_PREFIX)size
 STRIP        = $(CROSS_PREFIX)strip
 SHLIB        = $(CC) -shared
 STRIPLIB     = $(STRIP) --strip-unneeded
+SYSTEMD_UNIT = /lib/systemd/system/pigpiod.service
+BACKUP_DIR   = /etc/pigpio/backup
+D_OVERRIDE   = /etc/systemd/system/pigpiod.service.d/
 
 SOVERSION    = 1
 
@@ -112,8 +115,22 @@ install:	$(ALL)
 	install -m 0644 p*.1                           $(DESTDIR)$(mandir)/man1
 	install -m 0755 -d                             $(DESTDIR)$(mandir)/man3
 	install -m 0644 p*.3                           $(DESTDIR)$(mandir)/man3
+	install -m 0755 -d                             $(DESTDIR)$(D_OVERRIDE)
+	install -m 0644 override.conf                  $(DESTDIR)$(D_OVERRIDE)/override.conf
+	if [ -f $(SYSTEMD_UNIT) ]; then \
+		mkdir -p $(BACKUP_DIR); \
+		cp -n $(SYSTEMD_UNIT) $(BACKUP_DIR)/pigpiod.service.orig; \
+	fi
+	if [ ! -f $(SYSTEMD_UNIT) ]; then \
+		cp pigpiod.service $(SYSTEMD_UNIT); \
+	fi
 ifeq ($(DESTDIR),)
 	ldconfig
+	systemctl daemon-reload
+	if ! systemctl is-enabled pigpiod >/dev/null 2>&1; then \
+		systemctl enable pigpiod; \
+	fi
+	systemctl restart pigpiod
 endif
 
 uninstall:
@@ -134,6 +151,7 @@ uninstall:
 	rm -f $(DESTDIR)$(mandir)/man1/pig*.1
 	rm -f $(DESTDIR)$(mandir)/man1/libpigpio*.1
 	rm -f $(DESTDIR)$(mandir)/man3/pig*.3
+	rm -f $(DESTDIR)$(D_OVERRIDE)/override.conf
 ifeq ($(DESTDIR),)
 	ldconfig
 endif

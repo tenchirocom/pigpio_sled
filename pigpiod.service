@@ -1,0 +1,9 @@
+[Unit]
+Description=Daemon required to control GPIO pins via pigpio
+[Service]
+Environment=LD_LIBRARY_PATH=/usr/local/lib
+ExecStart=/usr/local/bin/pigpiod -n localhost -p 8888 -s 1
+ExecStop=/bin/systemctl kill pigpiod
+Type=forking
+[Install]
+WantedBy=multi-user.target

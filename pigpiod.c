@@ -46,6 +46,7 @@ This version is for pigpio version 69+
 #include <netdb.h>
 
 #include "pigpio.h"
+#include "stripleds.h"
 
 /*
 This program starts the pigpio library as a daemon.
@@ -314,6 +315,9 @@ int main(int argc, char **argv)
    /* check command line parameters */
 
    initOpts(argc, argv);
+
+   // Read Strip LED startup config options
+   sled_startup("/etc/pigpio/sled.conf", "CONFIG_DIR");
 
    if (!foreground) {
       /* Fork off the parent process */

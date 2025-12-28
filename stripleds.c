@@ -1,6 +1,9 @@
 #include <stdio.h>
-#include <pigpio.h>
+#include <stdlib.h>
+#include <ctype.h>
 #include <string.h>
+#include <pigpio.h>
+#include <limits.h>
 #include "stripleds.h"
 
 #include "ws2811.h"
@@ -14,8 +17,25 @@
 #define DEFAULT_LEDS_OFF 0
 #define NUM_CHANNELS 2
 
-static int verbosity = 3;
+// Helper functions
+static uint32_t get_fmt_type(uint8_t fmt);
+static void set_default(int key, int value);
+static char *trim(char *s);
+static int keymap_size();
+
+typedef struct {
+    const char *name;
+    int numeric_key;
+    uint8_t ch;
+    int min;
+    int max;
+} KeyMap;
+static KeyMap key_map[];
+static int keymap_size();
+
+static int verbosity = 0;
 static int ready[2] = { 0, 0 };
+static int autobegin = 0;
 
 static ws2811_t ledstring = {
     .render_wait_time = 0,
@@ -56,6 +76,83 @@ static ws2811_t ledstring = {
     },
 }; /* end ledstring */
 
+void sled_startup(const char *default_sledconf_path, const char *config_dir_env) {
+
+    char *user_sledconf_path = getenv(config_dir_env);
+    FILE *fp;
+    char line[512];
+    const char *paths[2];
+    
+    paths[0] = default_sledconf_path;
+    paths[1] = user_sledconf_path ? user_sledconf_path : NULL;
+
+    for(int p = 0; p < 2; p++) {
+        if(paths[p] == NULL) continue;
+
+        fp = fopen(paths[p], "r");
+        if(!fp) continue;
+
+        if (verbosity >= 0) printf("Load Strip LED config file: %s...", paths[p]);
+
+        while(fgets(line, sizeof(line), fp)) {
+            char *s = trim(line);
+            if(*s == '#' || *s == '\0') continue;  // comment or empty line
+
+            char *eq = strchr(s, '=');
+            if(!eq) continue;
+            *eq = '\0';
+            char *key_str = trim(s);
+            char *value_str = trim(eq + 1);
+
+            // If default, just skip it.
+            if (strcmp(value_str, "default") == 0) continue;
+            if (strcmp(value_str, "Default") == 0) continue;
+            if (strcmp(value_str, "DEFAULT") == 0) continue;
+
+            // Value is only the first word
+            char *space = strpbrk(value_str, " \t#");
+            if(space) *space = '\0';
+
+            // Convert boolean strings to int
+            int value;
+            char *end;
+            if ((strcmp(value_str, "true") == 0)
+                ||(strcmp(value_str, "True") == 0)
+                ||(strcmp(value_str, "TRUE") == 0)
+            ) value = 1;
+            else if((strcmp(value_str, "false") == 0)
+                ||(strcmp(value_str, "False") == 0)
+                ||(strcmp(value_str, "FALSE") == 0)
+            ) value = 0;
+            else value = strtol(value_str, &end, 0);
+
+            // Find numeric key
+            int map_index = -1;
+            for(int i=0;i<keymap_size();i++) {
+                if(strcmp(key_str, key_map[i].name) == 0) {
+                    map_index = i;
+                    break;
+                }
+            }
+
+            if(map_index != -1) {
+                if (verbosity >= 3) printf("Strip LED Port: key found in config file: %s, value %d\n", key_str, value);
+                // Check value in range
+                if ((value >= key_map[map_index].min) && (value <= key_map[map_index].max)) {
+                    set_default(map_index, value);
+                }
+            } else {
+                if (verbosity >= 1) fprintf(stderr, "Strip LED Port: unknown key in config file: %s\n", key_str);
+            }
+        }
+        fclose(fp);
+        if (verbosity >= 0) printf("Done.\n");
+    }
+
+    // Auto start the sled channels so they are ready for use.
+    if (autobegin) sled_begin();
+}
+
 extern int sled_channelsetup(uint32_t numleds, uint32_t pin, uint8_t fmt, uint8_t ch) {
 
     if (fmt == SLED_DEFAULT_VALUE) fmt = 0;
@@ -76,25 +173,7 @@ extern int sled_channelsetup(uint32_t numleds, uint32_t pin, uint8_t fmt, uint8_
     ready[ch] = 0;
     ledstring.channel[ch].gpionum = pin;
     ledstring.channel[ch].count = numleds;
-    switch (fmt & 0x0F) {
-        case 0x00: ledstring.channel[ch].strip_type = WS2811_STRIP_GRB; break;
-        case 0x01: ledstring.channel[ch].strip_type = WS2811_STRIP_GBR; break;
-        case 0x02: ledstring.channel[ch].strip_type = WS2811_STRIP_RGB; break;
-        case 0x03: ledstring.channel[ch].strip_type = WS2811_STRIP_RBG; break;
-        case 0x04: ledstring.channel[ch].strip_type = WS2811_STRIP_BRG; break;
-        case 0x05: ledstring.channel[ch].strip_type = WS2811_STRIP_BGR; break;
-        case 0x06: ledstring.channel[ch].strip_type = SK6812_STRIP_GRBW; break;
-        case 0x07: ledstring.channel[ch].strip_type = SK6812_STRIP_GBRW; break;
-        case 0x08: ledstring.channel[ch].strip_type = SK6812_STRIP_RGBW; break;
-        case 0x09: ledstring.channel[ch].strip_type = SK6812_STRIP_RBGW; break;
-        case 0x0A: ledstring.channel[ch].strip_type = SK6812_STRIP_BRGW; break;
-        case 0x0B: ledstring.channel[ch].strip_type = SK6812_STRIP_BGRW; break;
-        case 0x0C: ledstring.channel[ch].strip_type = SK6812_SHIFT_WMASK; break;
-        default:
-            fprintf(stderr, "Strip LED Port: unknown type, using 2811 GRB format.\n");
-            ledstring.channel[ch].strip_type = WS2811_STRIP_GRB;
-            break;
-    }
+    ledstring.channel[ch].strip_type = get_fmt_type(ch);
 
     if (verbosity >= 0) printf("Strip LED Port: configured channel %d.\n", ch);
     return 0;
@@ -213,4 +292,141 @@ extern int sled_setled(uint32_t led, uint32_t val, uint8_t ch) {
 
     ledstring.channel[ch].leds[led] = (ws2811_led_t)val;
     return 0;
+}
+
+// Static helper funciton definitions
+
+static uint32_t get_fmt_type(uint8_t fmt) {
+    switch (fmt & 0x0F) {
+        case 0x00: return(WS2811_STRIP_GRB);
+        case 0x01: return(WS2811_STRIP_GBR);
+        case 0x02: return(WS2811_STRIP_RGB);
+        case 0x03: return(WS2811_STRIP_RBG);
+        case 0x04: return(WS2811_STRIP_BRG);
+        case 0x05: return(WS2811_STRIP_BGR);
+        case 0x06: return(SK6812_STRIP_GRBW);
+        case 0x07: return(SK6812_STRIP_GBRW);
+        case 0x08: return(SK6812_STRIP_RGBW);
+        case 0x09: return(SK6812_STRIP_RBGW);
+        case 0x0A: return(SK6812_STRIP_BRGW);
+        case 0x0B: return(SK6812_STRIP_BGRW);
+        case 0x0C: return(SK6812_SHIFT_WMASK);
+        default:
+            fprintf(stderr, "Strip LED Port: unknown type, using 2811 GRB format.\n");
+            return(WS2811_STRIP_GRB);
+    }
+}
+
+// Map string keys to numeric keys
+#define CONF_AUTOBEGIN      0
+#define CONF_VERBOSITY      1
+#define CONF_DMANUM         2
+#define CONF_FREQUENCY      3
+#define CONF_RENDERWAIT     4
+#define CONF_CH_GPIONUM     10
+#define CONF_CH_COUNT       11
+#define CONF_CH_STRIP       12
+#define CONF_CH_INVERT      13
+#define CONF_CH_BRIGHT      14
+#define CONF_CH_WSHIFT      15
+#define CONF_CH_RSHIFT      16
+#define CONF_CH_GSHIFT      17
+#define CONF_CH_BSHIFT      18
+
+static KeyMap key_map[] = {
+    {"autobegin",           CONF_AUTOBEGIN, -1,     0,      1  },
+    {"verbosity",           CONF_VERBOSITY, -1,    -1,      5  },
+    {"dmanum",              CONF_DMANUM,    -1,     0,      32 },
+    {"freq",                CONF_FREQUENCY, -1,     400000, 800000 },
+    {"render_wait_time",    CONF_RENDERWAIT,-1,     0,      1  },
+    {"ch0:gpionum",         CONF_CH_GPIONUM, 0,     0,      31 },
+    {"ch0:count",           CONF_CH_COUNT,   0,     0,      INT_MAX },
+    {"ch0:strip_type",      CONF_CH_STRIP,   0,     0,      0xF },
+    {"ch0:invert",          CONF_CH_INVERT,  0,     0,      1   },
+    {"ch0:brightness",      CONF_CH_BRIGHT,  0,     0,      255 },
+    {"ch0:wshift",          CONF_CH_WSHIFT,  0,     0,      255 },
+    {"ch0:rshift",          CONF_CH_RSHIFT,  0,     0,      255 },
+    {"ch0:gshift",          CONF_CH_GSHIFT,  0,     0,      255 },
+    {"ch0:bshift",          CONF_CH_BSHIFT,  0,     0,      255 },
+    {"ch1:gpionum",         CONF_CH_GPIONUM, 1,     0,      31 },
+    {"ch1:count",           CONF_CH_COUNT,   1,     0,      INT_MAX },
+    {"ch1:strip_type",      CONF_CH_STRIP,   1,     0,      0xF },
+    {"ch1:invert",          CONF_CH_INVERT,  1,     0,      1   },
+    {"ch1:brightness",      CONF_CH_BRIGHT,  1,     0,      255 },
+    {"ch1:wshift",          CONF_CH_WSHIFT,  1,     0,      255 },
+    {"ch1:rshift",          CONF_CH_RSHIFT,  1,     0,      255 },
+    {"ch1:gshift",          CONF_CH_GSHIFT,  1,     0,      255 },
+    {"ch1:bshift",          CONF_CH_BSHIFT,  1,     0,      255 },
+};
+
+static int keymap_size()  {
+    return (sizeof(key_map)/sizeof(key_map[0]));
+}
+
+// Trim leading and trailing whitespace
+static char *trim(char *s) {
+    char *end;
+    while(isspace((unsigned char)*s)) s++;
+    if(*s == 0) return s;
+    end = s + strlen(s) - 1;
+    while(end > s && isspace((unsigned char)*end)) end--;
+    end[1] = '\0';
+    return s;
+}
+
+// Example static callback
+static void set_default(int map_index, int value) {
+    // Replace with actual handling
+    if (verbosity >= 3) printf("Key index %d = %d\n", map_index, value);
+    int ch = key_map[map_index].ch;
+    switch (key_map[map_index].numeric_key) {
+        case CONF_AUTOBEGIN:
+            autobegin = value;
+            break;
+        case CONF_VERBOSITY:
+            verbosity = value;
+            break;
+        case CONF_DMANUM:
+            ledstring.dmanum = value;
+            break;
+        case CONF_FREQUENCY:
+            ledstring.freq = value;
+            break;
+        case CONF_RENDERWAIT:
+            ledstring.render_wait_time = value;
+            break;
+        case CONF_CH_GPIONUM:
+            ledstring.channel[ch].gpionum = value;
+            break;
+        case CONF_CH_COUNT:
+            ledstring.channel[ch].count = value;
+            break;
+        case CONF_CH_STRIP:
+            ledstring.channel[ch].strip_type = get_fmt_type(value);
+            break;
+        case CONF_CH_INVERT:
+            ledstring.channel[ch].invert = value;
+            break;
+        case CONF_CH_BRIGHT:
+            ledstring.channel[ch].brightness = value;
+            break;
+        case CONF_CH_WSHIFT:
+            ledstring.channel[ch].wshift = value;
+            break;
+        case CONF_CH_RSHIFT:
+            ledstring.channel[ch].rshift = value;
+            break;
+        case CONF_CH_GSHIFT:
+            ledstring.channel[ch].gshift = value;
+            break;
+        case CONF_CH_BSHIFT:
+            ledstring.channel[ch].bshift = value;
+            break;
+        default:
+            if (verbosity >= 2)
+                fprintf(stderr, "Strip LED Port: unrecognized config option: %s\n",
+                    key_map[map_index].name
+                );
+            break;
+    } /* end switch */
 }

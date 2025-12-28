@@ -74,6 +74,8 @@ Led strips are a convenient way to add user feedback to Raspberry Pi projects. H
    
    This copies the built files into /usr/local/bin and /usr/local/lib. Your original files are still located in /usr/bin and /usr/lib. So becareful, we need to ensure search path and library paths do not pick up the old ones or mismatch the binaries and libaries.
 
+   The Makefile has been updated to automatically perform the next few steps and automatically startup the new daemon. However if there are problems, the following steps are included for completeness.
+
 2) Setup the service
    sudo systemctl edit --full pigpiod
 
@@ -115,29 +117,73 @@ Led strips are a convenient way to add user feedback to Raspberry Pi projects. H
 
 ## Strip Types Supported
 
-The following strip types are available in the rpi_ws281x library header file, ws2811.h
+The following strip format types are available for use when configuring channels. The format number corresponds to the following #define in the rpi_ws281x library header file, ws2811.h.
 
-// 4 color R, G, B and W ordering
-#define SK6812_STRIP_RGBW                        0x18100800
-#define SK6812_STRIP_RBGW                        0x18100008
-#define SK6812_STRIP_GRBW                        0x18081000
-#define SK6812_STRIP_GBRW                        0x18080010
-#define SK6812_STRIP_BRGW                        0x18001008
-#define SK6812_STRIP_BGRW                        0x18000810
-#define SK6812_SHIFT_WMASK                       0xf0000000
+        0x00: WS2811_STRIP_GRB | WS282_STRIP | SK6812_STRIP
+        0x01: WS2811_STRIP_GBR
+        0x02: WS2811_STRIP_RGB
+        0x03: WS2811_STRIP_RBG
+        0x04: WS2811_STRIP_BRG
+        0x05: WS2811_STRIP_BGR
+        0x06: SK6812_STRIP_GRBW | SK6812W_STRIP
+        0x07: SK6812_STRIP_GBRW
+        0x08: SK6812_STRIP_RGBW
+        0x09: SK6812_STRIP_RBGW
+        0x0A: SK6812_STRIP_BRGW
+        0x0B: SK6812_STRIP_BGRW
+        0x0C: SK6812_SHIFT_WMASK
 
-// 3 color R, G and B ordering
-#define WS2811_STRIP_RGB                         0x00100800
-#define WS2811_STRIP_RBG                         0x00100008
-#define WS2811_STRIP_GRB                         0x00081000
-#define WS2811_STRIP_GBR                         0x00080010
-#define WS2811_STRIP_BRG                         0x00001008
-#define WS2811_STRIP_BGR                         0x00000810
+Use these values in the sled.conf file as well for strip type.
 
-// predefined fixed LED types
-#define WS2812_STRIP                             WS2811_STRIP_GRB
-#define SK6812_STRIP                             WS2811_STRIP_GRB
-#define SK6812W_STRIP                            SK6812_STRIP_GRBW
+## Autostart Strip LED Configuration
+
+On startup, the pigpiod reads up to two config files and can initialize the sled service for the particular hardware. To use this feature, the following locations can be used:
+
+  /etc/pigpio/sled.conf
+  or
+  $CONFIG_FILE/sled.conf
+
+In the second option, you can place the file anywhere you choose and set the environment variable CONFIG_FILE to specify the locations.
+
+Config files are lines that either start with # for commments or include name/value pairs. For example:
+
+# Example sled.conf file
+
+# Pigpio Strip LED Config Files
+
+| # Pigpio Strip LED Config Example File
+| # 
+| # Place this file in the /etc/pigpio/sled.conf file, or run
+| # with the $CONFIG_DIR environment variable set to the
+| # directory with the sled.conf file in it.
+|
+| # Basic config parameters
+| autobegin=true
+| dmanum=default
+| freq=default
+| render_wait_type=default
+| 
+| # Channel 0
+| ch0:gpionum=18
+| ch0:count=64
+| ch0:strip_type=0x00
+| ch0:invert=false
+| ch0:brightness=255
+| ch0:wshift=default
+| ch0:rshift=default
+| ch0:gshift=default
+| ch0:bshift=default
+| 
+| # Channel 1 (off)
+| ch1:gpionum=0
+| ch1:count=0
+| ch1:strip_type=0x00
+| ch1:invert=false
+| ch1:brightness=255
+| ch1:wshift=default
+| ch1:rshift=default
+| ch1:gshift=default
+| ch1:bshift=default
 
 ## Original pigpio Features
 
