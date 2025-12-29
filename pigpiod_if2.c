@@ -2249,8 +2249,6 @@ int sled_set(int pi, uint32_t led, uint32_t val, uint8_t ch) {
    int32_t status;
    gpioExtent_t ext[1];
 
-   printf("Set parameters: led=%d, val=%#x, ch=%d.\n", led, val, ch);
-
    /*
    p1=control
    p2=0
