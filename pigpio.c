@@ -2514,7 +2514,6 @@ static int myDoCommand(uintptr_t *p, unsigned bufSize, char *buf)
          res = gpioWaveTxSend(p[1], PI_WAVE_MODE_REPEAT); break;
 
       case PI_CMD_SLEDC:      // Channel configuration
-         printf("Params: p1=%d, p2=%d, p3=%d\n", p[1], p[2], p[3]);
          tmp1 = (p[3] >= 1) ? buf[0] : SLED_DEFAULT_VALUE;
          tmp2 = (p[3] >= 2) ? buf[1] : SLED_DEFAULT_VALUE;
          tmp3 = (p[3] >= 3) ? buf[2] : SLED_DEFAULT_VALUE;
@@ -2550,7 +2549,7 @@ static int myDoCommand(uintptr_t *p, unsigned bufSize, char *buf)
          break;
 
       default:
-         printf("pigpio: myDoCommand: %d", p[0]);
+         fprintf(stderr, "Received unrecognized command code: %ld", p[0]);
          res = PI_UNKNOWN_COMMAND;
          break;
    }
