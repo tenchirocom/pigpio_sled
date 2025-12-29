@@ -2,8 +2,9 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
-#include <pigpio.h>
 #include <limits.h>
+
+#include "pigpio.h"
 #include "stripleds.h"
 
 #include "ws2811.h"
