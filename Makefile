@@ -13,7 +13,7 @@ SYSTEMD_UNIT = /lib/systemd/system/pigpiod.service
 BACKUP_DIR   = /etc/pigpio/backup
 D_OVERRIDE   = /etc/systemd/system/pigpiod.service.d/
 
-SOVERSION    = 1
+SOVERSION    = 2
 
 CFLAGS	+= -I./rpi_ws281x -O3 -Wall -pthread
 
