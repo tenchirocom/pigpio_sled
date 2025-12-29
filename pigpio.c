@@ -2549,7 +2549,7 @@ static int myDoCommand(uintptr_t *p, unsigned bufSize, char *buf)
          break;
 
       default:
-         fprintf(stderr, "Received unrecognized command code: %ld", p[0]);
+         fprintf(stderr, "Received unrecognized command code: %u", (uint32_t)p[0]);
          res = PI_UNKNOWN_COMMAND;
          break;
    }

@@ -64,6 +64,7 @@ Led strips are a convenient way to add user feedback to Raspberry Pi projects. H
 5) git checkout strip-led-support
 
 6) cd rpi_ws281x && scons
+   You may need to install scons, use the following: sudo apt install scons
 
 7) cd .. && make
 
